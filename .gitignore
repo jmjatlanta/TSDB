@@ -6,6 +6,7 @@
 *.lo
 *.o
 *.obj
+*.Po
 
 # Precompiled Headers
 *.gch
@@ -30,3 +31,22 @@
 *.exe
 *.out
 *.app
+test/summary
+
+# automake stuff
+*.m4
+ar-lib
+compile
+config.guess
+config.log
+config.status
+config.sub
+configure
+depcomp
+install-sh
+libtool
+ltmain.sh
+Makefile
+Makefile.in
+missing
+autom4te.cache/*

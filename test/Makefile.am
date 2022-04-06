@@ -4,7 +4,7 @@ libgtest_la_CPPFLAGS = -I$(top_srcdir)/googletest/googletest/include -I$(top_src
 libgtest_la_LDFLAGS = -pthread
 
 bin_PROGRAMS = summary
-summary_SOURCES = summary.cpp ../googletest/googletest/src/gtest_main.cc
+summary_SOURCES = summary.cpp ../src/tsdb.cpp ../googletest/googletest/src/gtest_main.cc
 summary_LDADD = libgtest.la
 summary_LDFLAGS = -lpthread
 summary_CPPFLAGS = -I$(top_srcdir)/googletest/googletest/include -I$(top_srcdir)/googletest/googletest -pthread

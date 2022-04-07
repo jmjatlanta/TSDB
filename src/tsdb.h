@@ -1,7 +1,9 @@
 #include <set>
+#include <map>
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <memory>
 
 #define AMOUNT_PRECISION 10000
 #define VOLUME_PRECISION 1
@@ -15,6 +17,8 @@ public:
     Value(uint64_t in, uint32_t prec) : data(in), prec(prec) { }
 
     operator double() { return to_double(); }
+
+    Value& operator+=(const Value& rhs) { data += rhs.data; return *this; }
 
     friend bool operator<(const Value& lhs, const Value& rhs);
     friend bool operator>(const Value& lhs, const Value& rhs);
@@ -102,6 +106,13 @@ public:
      * @returns true if added
      */
     bool AddTick(const Tick& in);
+    static Time ResolutionSpan(Resolution res);
+    /****
+     * @param in the timestamp
+     * @param res the resolution
+     * @return the start time of the bar that contains this timestamp
+     */
+    static Time CalcStartTime(const Time& in, Bar::Resolution res);
 private:
     /***
      * @return the start time of the bar
@@ -139,7 +150,21 @@ public:
      * @param resolution the timespan of 1 bar
      * @returns the bars
      */
-    std::vector<Bar> GetLast(uint32_t qty, Bar::Resolution resolution);
+    std::vector<std::shared_ptr<Bar>> GetLast(uint32_t qty, Bar::Resolution resolution);
+    /*****
+     * @brief keep track of a resolution
+     * @param res the resolution
+     * @return false if resolution was already there
+     */
+    bool AddResolution(Bar::Resolution res);
 protected:
     std::multiset<Tick> ticks;
+    std::map<Bar::Resolution, std::vector<std::shared_ptr<Bar> > > bars;
+
+    /****
+     * @param timestamp the timestamp
+     * @param coll the collection of bars (all of the same resolution)
+     * @returns the bar that contains the timestamp
+     */
+    std::shared_ptr<Bar> GetBar(const Time& timestamp, const std::vector<std::shared_ptr<Bar>>& coll);
 };

@@ -25,6 +25,7 @@ bool Bar::AddTick(const Tick& in)
         low = in.price;
     if (in.price > high)
         high = in.price;
+    volume += in.volume;
     return true;
 }
 
@@ -37,7 +38,12 @@ Time Bar::GetEnd()
 
 Time Bar::ResolutionSpan()
 {
-    switch(resolution)
+    return ResolutionSpan(resolution);
+}
+
+Time Bar::ResolutionSpan(Bar::Resolution res)
+{
+    switch(res)
     {
         case(Resolution::BARS_1MIN):
             return std::chrono::milliseconds( std::chrono::minutes(1) ).count();
@@ -59,6 +65,12 @@ Time Bar::ResolutionSpan()
     return 0;
 }
 
+Time Bar::CalcStartTime(const Time& timestamp, Bar::Resolution res)
+{
+    Time msPer = Bar::ResolutionSpan(res);
+    return timestamp - (timestamp % msPer);
+}
+
 bool TSDB::AddBar(const Bar& in)
 {
     // TODO: Find the start time and add ohlcv to the collection
@@ -68,16 +80,49 @@ bool TSDB::AddBar(const Bar& in)
 bool TSDB::AddTick(const Tick& in)
 {
     ticks.insert(in);
+    for( auto &coll : bars )
+    {
+        const Bar::Resolution res = coll.first;
+        std::shared_ptr<Bar> b = GetBar(in.timestamp, coll.second);
+        if (b == nullptr)
+        {
+            Time startTime = Bar::CalcStartTime( in.timestamp, res);
+            coll.second.push_back( std::make_shared<Bar>(startTime, res) );
+            b = coll.second.back();
+        }
+        b->AddTick(in);
+    }
     return true;
 }
 
-std::vector<Bar> TSDB::GetLast(uint32_t qty, Bar::Resolution resolution)
+bool TSDB::AddResolution(Bar::Resolution res)
 {
-    std::vector<Bar> retVal( {Bar(1, Bar::Resolution::BARS_5MIN)} );
-    Bar& b = retVal.back();
-    for( auto& tick : ticks )
+    const auto itr = bars.find(res);
+    if (itr != bars.end())
+        return false;
+    bars[res] = std::vector<std::shared_ptr<Bar>>();
+    return true;
+}
+
+std::shared_ptr<Bar> TSDB::GetBar(const Time& timestamp, const std::vector<std::shared_ptr<Bar>>& coll)
+{
+    std::shared_ptr<Bar> retVal = nullptr;
+    for(auto b : coll)
     {
-        b.AddTick(tick);
+        if (b->start <= timestamp && b->end >= timestamp)
+            return b;
+    }
+    return nullptr;
+}
+
+std::vector<std::shared_ptr<Bar>> TSDB::GetLast(uint32_t qty, Bar::Resolution resolution)
+{
+    std::vector<std::shared_ptr<Bar>>& coll = bars[resolution];
+    std::vector<std::shared_ptr<Bar>> retVal;
+    for(auto itr = coll.rbegin(); itr != coll.rend() && qty > 0; itr++)
+    {
+        retVal.push_back( (*itr) );
+        qty--;
     }
     return retVal;
 }

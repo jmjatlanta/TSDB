@@ -50,3 +50,7 @@ Makefile
 Makefile.in
 missing
 autom4te.cache/*
+.dirstamp
+
+#ide
+.vscode/*
